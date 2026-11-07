@@ -554,3 +554,14 @@ button.h2h-card.link .chev {
   font-size: 26px; color: var(--gold-2); line-height: 1;
 }
 button.h2h-card.link + button.h2h-card.link { margin-top: 8px; }
+
+/* Sincronização */
+.sync-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-left: 6px; vertical-align: middle; background: transparent; }
+.sync-dot.online { background: #3ecf6e; }
+.sync-dot.connecting, .sync-dot.offline { background: #e8b44a; }
+.sync-dot.error { background: #e0533d; }
+.sync-code {
+  font-family: var(--f-num); font-weight: 800; font-size: 24px; text-align: center; letter-spacing: .5px;
+  color: var(--gold-2); padding: 10px; border-radius: 12px; background: rgba(0,0,0,.25);
+  user-select: all; -webkit-user-select: all; word-break: break-all;
+}

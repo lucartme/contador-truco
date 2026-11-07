@@ -1,11 +1,13 @@
 /* Truco — service worker: guarda tudo em cache para funcionar offline.
    Ao publicar alterações, aumenta a versão abaixo para forçar a atualização. */
-const CACHE = 'truco-v2';
+const CACHE = 'truco-v3';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './sync.js',
+  './firebase-config.js',
   './manifest.json',
   './icons/apple-touch-icon.png',
   './icons/icon-192.png',
@@ -29,6 +31,17 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  // Biblioteca do Firebase (versão fixa): guarda em cache para abrir offline
+  if (url.origin === 'https://www.gstatic.com' && url.pathname.startsWith('/firebasejs/')) {
+    e.respondWith(caches.open(CACHE).then(async (cache) => {
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res && res.ok) cache.put(req, res.clone());
+      return res;
+    }));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   e.respondWith(

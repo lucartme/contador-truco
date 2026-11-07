@@ -63,6 +63,7 @@
       <button data-go="teams">👥 Times guardados</button>
       <button data-go="history">📜 Histórico</button>
       <button data-go="settings">⚙️ Definições</button>
+      <button data-go="sync">🔄 Sincronizar com amigos <span id="syncDot" class="sync-dot"></span></button>
       <button data-go="data">💾 Exportar / Importar dados</button>
       <div class="drawer-foot">Truco Paulista · marcador</div>
     </nav>
@@ -91,6 +92,8 @@
 
   <div class="toast" id="toast" hidden></div>
 
+  <script src="firebase-config.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 </body>
 </html>

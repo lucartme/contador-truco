@@ -39,6 +39,17 @@ let db = load();
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
   catch (e) { toast('Não foi possível guardar os dados'); }
+  if (window.TrucoSync) window.TrucoSync.onSave();
+}
+/* Sincronização: regista apagamentos explícitos para enviar ao grupo (ver sync.js) */
+function syncDelete(col, id) {
+  try {
+    if (!localStorage.getItem('truco.sync.group')) return;
+    const k = 'truco.sync.del';
+    const a = JSON.parse(localStorage.getItem(k) || '[]');
+    a.push({ col, id });
+    localStorage.setItem(k, JSON.stringify(a));
+  } catch (e) { /* ignora */ }
 }
 
 /* ================= Utilitários ================= */
@@ -162,6 +173,7 @@ function undo() {
   const prev = JSON.parse(m.undo.pop());
   if (m.historyId && prev.historyId !== m.historyId) {
     db.history = db.history.filter((h) => h.id !== m.historyId);
+    syncDelete('partidas', m.historyId);
   }
   // nomes, jogadores e posição dos times não fazem parte do desfazer
   prev.teams = m.teams;
@@ -734,14 +746,29 @@ function openScreen(name) {
   closeDrawer();
   closeModal(true);
   currentScreen = name;
-  const titles = { new: 'Nova partida', teams: 'Times guardados', history: 'Histórico', settings: 'Definições', data: 'Exportar / Importar' };
+  const titles = { new: 'Nova partida', teams: 'Times guardados', history: 'Histórico', settings: 'Definições', data: 'Exportar / Importar', sync: 'Sincronizar com amigos' };
   $('#screenTitle').textContent = titles[name] || '';
   $('#screen').hidden = false;
   // novo elemento a cada ecrã para não acumular listeners
   const prevBody = $('#screenBody');
   const body = prevBody.cloneNode(false);
   prevBody.replaceWith(body);
-  ({ new: screenNew, teams: screenTeams, history: screenHistory, settings: screenSettings, data: screenData })[name](body);
+  currentBody = body;
+  ({ new: screenNew, teams: screenTeams, history: screenHistory, settings: screenSettings, data: screenData, sync: screenSync })[name](body);
+}
+let currentBody = null;
+function screenSync(body) {
+  if (window.TrucoSync) window.TrucoSync.renderScreen(body);
+  else body.innerHTML = '<div class="empty-list">A carregar…<br>Se não aparecer nada, verifica a ligação à internet e abre de novo.</div>';
+}
+/* Chamado pelo sync.js quando chegam dados de outro telemóvel */
+function refreshFromSync() {
+  render();
+  if (!currentBody || $('#screen').hidden) return;
+  if (currentScreen === 'history') {
+    if (historyPairKey) screenHistoryPair(currentBody, historyPairKey); else screenHistory(currentBody);
+  } else if (currentScreen === 'teams') screenTeams(currentBody);
+  else if (currentScreen === 'sync') screenSync(currentBody);
 }
 function closeScreen() {
   $('#screen').hidden = true;
@@ -952,7 +979,7 @@ function screenTeams(body) {
         title: `Apagar ${rec.name}?`,
         text: 'O time sai da lista. As partidas do histórico mantêm-se.',
         ok: 'Apagar', danger: true,
-        onOk: () => { db.teams = db.teams.filter((x) => x.id !== rec.id); save(); screenTeams(body); },
+        onOk: () => { db.teams = db.teams.filter((x) => x.id !== rec.id); syncDelete('times', rec.id); save(); screenTeams(body); },
       });
     }
   };
@@ -965,8 +992,10 @@ function balanceText(A, B, r, hasBets) {
   if (r.bal < 0) return `Saldo: ${esc(B)} ${esc(fmtSigned(-r.bal))}`;
   return hasBets ? 'Saldo: empatado' : '';
 }
+let historyPairKey = null;
 function screenHistory(body) {
   screenBack = null;
+  historyPairKey = null;
   $('#screenTitle').textContent = 'Histórico';
   const pairs = new Map();
   for (const h of db.history) {
@@ -997,6 +1026,7 @@ function screenHistory(body) {
 function screenHistoryPair(body, key) {
   const items = db.history.filter((h) => pairKey(h) === key).reverse();
   if (!items.length) { screenHistory(body); return; }
+  historyPairKey = key;
   screenBack = () => screenHistory(body);
   const ref = items[0];
   const A = nameOfSnap(ref.teams.a), B = nameOfSnap(ref.teams.b);
@@ -1040,6 +1070,7 @@ function screenHistoryPair(body, key) {
         title: 'Apagar partida?', text: 'Esta partida sai do histórico e do confronto direto.', ok: 'Apagar', danger: true,
         onOk: () => {
           db.history = db.history.filter((x) => x.id !== dl.dataset.hdel);
+          syncDelete('partidas', dl.dataset.hdel);
           if (db.current && db.current.historyId === dl.dataset.hdel) db.current.historyId = null;
           save(); screenHistoryPair(body, key);
         },
@@ -1085,7 +1116,10 @@ function screenSettings(body) {
     if (e.target.closest('#wipe')) {
       confirmModal({
         title: 'Apagar tudo?', text: 'Times, histórico, partida atual e definições serão apagados. Faz um backup antes!', ok: 'Apagar tudo', danger: true,
-        onOk: () => { db = defaultDb(); save(); lastScores = null; screenSettings(body); toast('Dados apagados'); },
+        onOk: () => {
+          if (window.TrucoSync) window.TrucoSync.leave(); // não apaga o histórico dos amigos
+          db = defaultDb(); save(); lastScores = null; screenSettings(body); toast('Dados apagados');
+        },
       });
     }
   };
@@ -1165,7 +1199,9 @@ function doImport(text, body) {
         save(); toast('Dados juntados ✓'); screenData(body);
       } },
       { label: 'Substituir tudo', cls: 'danger', onClick: () => {
-        db = inc; save(); lastScores = null; toast('Dados importados ✓'); screenData(body);
+        db = inc; save(); lastScores = null; toast('Dados importados ✓');
+        if (window.TrucoSync) window.TrucoSync.reapply();
+        screenData(body);
       } },
       { label: 'Cancelar', cls: 'ghost' },
     ],
@@ -1214,6 +1250,12 @@ document.addEventListener('touchend', () => { if (!wakeLock) updateWakeLock(); }
 /* ================= iOS: sem zoom ================= */
 // touch-action: manipulation (CSS) já desativa o zoom por duplo toque sem atrasar toques rápidos
 document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+/* ================= API para o sync.js ================= */
+window.Truco = {
+  get db() { return db; },
+  save, norm, esc, toast, copyText, shareWhatsApp, confirmModal, refresh: refreshFromSync,
+};
 
 /* ================= Arranque ================= */
 if (db.current) { lastScores = { ...db.current.score }; lastHandValue = db.current.hand.value; }
