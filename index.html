@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Truco">
+  <meta name="theme-color" content="#082625">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="Marcador de pontos de truco paulista">
+  <title>Truco</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <button id="btnMenu" class="icon-btn" aria-label="Menu">☰</button>
+      <div class="brand"><span class="suit-red">♥</span> TRUCO <span>♠</span></div>
+      <button id="btnUndo" class="icon-btn" aria-label="Desfazer"><span class="ic">↶</span><small>Desfazer</small></button>
+      <button id="btnSwap" class="icon-btn" aria-label="Trocar times"><span class="ic">⇅</span><small>Trocar</small></button>
+    </header>
+
+    <main class="board" id="board">
+      <section class="team-card" id="panelTop" data-pos="top"></section>
+
+      <div class="strip">
+        <button class="deal-info" id="dealInfo" aria-label="Mudar quem embaralha">
+          <span>🂠 Embaralha: <b id="dealerName">—</b></span>
+          <span>▶ Começa jogando: <b id="starterName">—</b></span>
+        </button>
+        <div class="strip-row">
+          <button id="btnBet" class="bet-btn"><span class="bet-ic">💰</span><span id="betLabel">Apostar</span></button>
+          <div class="hand-val" id="handVal" aria-live="polite"><small>vale</small><b id="handValNum">1</b></div>
+          <button id="btnTruco" class="truco-btn"><span id="trucoLabel">Truco!</span> <span id="trucoValue" class="tv">(3)</span></button>
+        </div>
+        <div class="hand-note" id="handNote"></div>
+      </div>
+
+      <section class="team-card" id="panelBottom" data-pos="bottom"></section>
+
+      <div class="empty" id="emptyState" hidden>
+        <div class="empty-card">
+          <div class="big-suit">♠</div>
+          <h2>Nenhuma partida em curso</h2>
+          <p>Cria uma partida para começar a marcar.</p>
+          <button class="btn gold" id="btnEmptyNew">Nova partida</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Menu lateral -->
+  <div class="drawer-wrap" id="drawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <nav class="drawer">
+      <div class="drawer-head"><span class="suit-red">♦</span> Menu <span>♣</span></div>
+      <button data-go="new">🃏 Nova partida</button>
+      <button data-go="teams">👥 Times guardados</button>
+      <button data-go="history">📜 Histórico</button>
+      <button data-go="settings">⚙️ Definições</button>
+      <button data-go="data">💾 Exportar / Importar dados</button>
+      <div class="drawer-foot">Truco Paulista · marcador</div>
+    </nav>
+  </div>
+
+  <!-- Ecrãs secundários -->
+  <div class="screen" id="screen" hidden>
+    <header class="screen-head">
+      <button class="icon-btn" id="screenBack" aria-label="Voltar">‹</button>
+      <h1 id="screenTitle"></h1>
+      <span class="icon-btn ghost-space"></span>
+    </header>
+    <div class="screen-body" id="screenBody"></div>
+  </div>
+
+  <!-- Pop-up em forma de carta -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="flip" id="flip">
+      <div class="flip-inner" id="flipInner">
+        <div class="face back"><div class="back-pattern"></div></div>
+        <div class="face front" id="modalFront"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
